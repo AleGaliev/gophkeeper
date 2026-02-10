@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package gophkeeper;
+
+option go_package = "github.com/alegaliev/gophkeeper/internal/pkg/proto";
+
+enum SecretType {
+  SECRET_TYPE_UNSPECIFIED = 0;
+  SECRET_TYPE_LOGIN_PASSWORD = 1;
+  SECRET_TYPE_TEXT = 2;
+  DSECRET_TYPE_BINARY = 3;
+  DSECRET_TYPE_CARD = 4;
+}
+
+message Secret {
+  SecretType secret_type = 1;
+  string name = 2;
+  string description = 3;
+  bytes encrypted_data = 4;
+}
+
+message User {
+  string login = 1;
+  string password = 2;
+}
+
+message Token {
+  string token = 1;
+}
+
+message CreateSecretRequest {
+  Secret secret = 1;
+}
+
+message CreateSecretResponse {}
+
+message UpdateSecretRequest {
+  Secret secret = 1;
+}
+
+message UpdateSecretResponse {}
+
+message LoginRequest {
+  User user = 1;
+}
+
+message LoginResponse {
+  Token token = 1;
+}
+
+message DeleteSecretRequest {
+  SecretType secret_type = 2;
+  string secret_name = 3;
+}
+
+message DeleteSecretResponse {}
+
+message GetSecretRequest {
+  SecretType secret_type = 2;
+  string secret_name = 3;
+}
+
+message GetSecretResponse {
+  Secret secret = 1;
+}
+
+message GetListSecretsRequest {
+  SecretType secret_type = 1;
+}
+
+message GetListSecretsResponse {
+  repeated Secret secrets = 1;
+}
+
+service GophKeeper {
+  // Register creates a new user account.
+  rpc Register(LoginRequest) returns (LoginResponse);
+
+  // Login authenticates a user and returns an access token.
+  rpc Login(LoginRequest) returns (LoginResponse);
+
+  // CreateSecret stores a new encrypted secret.
+  rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse);
+
+  // GetSecret retrieves a specific secret by ID.
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+
+  // ListSecrets retrieves all secrets for the authenticated user.
+  rpc ListSecrets(GetListSecretsRequest) returns (GetListSecretsResponse);
+
+  // UpdateSecret updates an existing secret.
+  rpc UpdateSecret(UpdateSecretRequest) returns (UpdateSecretResponse);
+
+  // DeleteSecret removes a secret.
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+}

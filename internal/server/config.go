@@ -3,7 +3,8 @@ package server
 import "gophkeeper/internal/log"
 
 type Config struct {
-	Port        string
+	HttpPort    string
+	GrpcPort    string
 	Key         string
 	DatabaseDSN string
 	LogLevel    string

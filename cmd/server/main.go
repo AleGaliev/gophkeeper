@@ -5,7 +5,6 @@ import (
 	"gophkeeper/internal/infra/postgres/migrations"
 	"gophkeeper/internal/log"
 	"gophkeeper/internal/server"
-	"gophkeeper/internal/server/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,7 +28,7 @@ func main() {
 				Value:       "INFO",
 				Aliases:     []string{},
 				Destination: &cfg.LogLevel,
-				Sources:     cli.EnvVars("GOPHKEEPER_PORT"),
+				Sources:     cli.EnvVars("GOPHKEEPER_LOG_LEVEL"),
 			},
 		},
 		Commands: []*cli.Command{
@@ -39,12 +38,20 @@ func main() {
 				Usage:   "start gophkeeper server",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "port",
-						Usage:       "gophkeeper server port",
-						Value:       "8080",
-						Aliases:     []string{"p"},
-						Destination: &cfg.Port,
-						Sources:     cli.EnvVars("GOPHKEEPER_PORT"),
+						Name:        "http-port",
+						Usage:       "gophkeeper http server port",
+						Value:       ":8080",
+						Aliases:     []string{"hp"},
+						Destination: &cfg.HttpPort,
+						Sources:     cli.EnvVars("GOPHKEEPER_HTTP_PORT"),
+					},
+					&cli.StringFlag{
+						Name:        "grpc-port",
+						Usage:       "gophkeeper grpc server port",
+						Value:       ":8081",
+						Aliases:     []string{"gp"},
+						Destination: &cfg.GrpcPort,
+						Sources:     cli.EnvVars("GOPHKEEPER_GRPC_PORT"),
 					},
 					&cli.StringFlag{
 						Name:        "db-dsn",
@@ -52,7 +59,7 @@ func main() {
 						Value:       "",
 						Aliases:     []string{"db"},
 						Destination: &cfg.DatabaseDSN,
-						Sources:     cli.EnvVars("GOPHKEEPER_DN"),
+						Sources:     cli.EnvVars("GOPHKEEPER_DSN"),
 					},
 					&cli.StringFlag{
 						Name:        "key",
@@ -64,7 +71,7 @@ func main() {
 					},
 				},
 				Action: func(ctx context.Context, command *cli.Command) error {
-					server, err := http.New(cfg)
+					server, err := server.New(cfg)
 					if err != nil {
 						return err
 					}
