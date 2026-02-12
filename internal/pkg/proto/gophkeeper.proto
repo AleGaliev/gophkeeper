@@ -44,9 +44,7 @@ message LoginRequest {
   User user = 1;
 }
 
-message LoginResponse {
-  Token token = 1;
-}
+message LoginResponse {}
 
 message DeleteSecretRequest {
   SecretType secret_type = 2;

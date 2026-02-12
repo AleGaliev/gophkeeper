@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	cfg "gophkeeper/internal/config/server"
 	"gophkeeper/internal/infra/postgres/migrations"
 	"gophkeeper/internal/log"
 	"gophkeeper/internal/server"
@@ -12,11 +13,18 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+	serviceName  string = "gophkeeper server"
+)
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, os.Interrupt)
 	defer cancel()
 
-	cfg := server.Config{}
+	cfg := cfg.Config{}
 
 	app := &cli.Command{
 		Name:  "gophkeeper",
@@ -135,6 +143,7 @@ func main() {
 		},
 		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
 			cfg.Logger = log.New(cfg.LogLevel)
+			cfg.Logger.Info(ctx, serviceName, "buildVersion", buildVersion, "buildDate", buildDate, "buildCommit", buildCommit)
 			return ctx, nil
 		},
 	}

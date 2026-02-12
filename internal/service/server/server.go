@@ -1,4 +1,4 @@
-package service
+package server
 
 import (
 	"context"
@@ -15,6 +15,7 @@ const (
 
 type Storage interface {
 	СreateSecret(ctx context.Context, user string, secret *model.Secret) error
+	UpdateSecret(ctx context.Context, user string, secret *model.Secret) error
 	GetSecret(ctx context.Context, user, secretName, secretType string) (model.Secret, error)
 	SecretExists(ctx context.Context, user, secretName, typeSecret string) (bool, error)
 	UserExists(ctx context.Context, login string) (bool, error)
@@ -22,7 +23,7 @@ type Storage interface {
 	GetUserHash(ctx context.Context, login string) (string, error)
 	GetSecretList(ctx context.Context, user string) ([]model.Secret, error)
 	GetSecretListInType(ctx context.Context, user, secretType string) ([]model.Secret, error)
-	DeleteSecret(ctx context.Context, user, secretType, secretName string) error
+	DeleteSecret(ctx context.Context, user, secretName, secretTYPE string) error
 }
 
 type JWTManager interface {
@@ -49,7 +50,6 @@ func (s *Service) CreateUser(ctx context.Context, user model.User) (string, erro
 	if err != nil {
 		return "", err
 	}
-
 	check, err := s.storage.UserExists(ctx, user.Login)
 	if err != nil {
 		return "", err
@@ -119,14 +119,14 @@ func (s *Service) UpdateSecret(ctx context.Context, user string, secret model.Se
 		return errors.New(ErrSecretNoExist)
 	}
 
-	if err = s.storage.СreateSecret(ctx, user, &secret); err != nil {
+	if err = s.storage.UpdateSecret(ctx, user, &secret); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (s *Service) DeleteSecret(ctx context.Context, user, secretType, secretName string) error {
-	check, err := s.storage.SecretExists(ctx, user, secretType, secretName)
+	check, err := s.storage.SecretExists(ctx, user, secretName, secretType)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,6 @@ func (s *Service) GetSecret(ctx context.Context, user, secretType, secretName st
 	if err != nil {
 		return model.Secret{}, err
 	}
-
 	return secret, nil
 }
 

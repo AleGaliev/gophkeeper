@@ -52,12 +52,14 @@ func AuthInterceptor(jwtManager JWTManager, skipAuthMethod []string) grpc.UnaryS
 			return nil, status.Errorf(codes.PermissionDenied,
 				"metadata not found in context")
 		}
-		tokens := md.Get("Authorization")
+
+		tokens := md.Get("authorization")
 		if len(tokens) == 0 {
 			return nil, status.Errorf(codes.PermissionDenied,
 				"authorization token is not provided")
 		}
 		for _, t := range tokens {
+
 			user, err := jwtManager.GetLoginFromToken(t)
 			if err != nil {
 				return nil, status.Errorf(codes.PermissionDenied, "not authorized")

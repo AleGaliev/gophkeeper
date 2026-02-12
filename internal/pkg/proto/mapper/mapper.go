@@ -12,7 +12,18 @@ func ProtoUserInUser(user pb.User) *model.User {
 	}
 }
 
-func ProtoSecertInSecert(pbSecret *pb.Secret) *model.Secret {
+func UserInProtoUser(user model.User) *pb.User {
+	return pb.User_builder{
+		Login:    user.Login,
+		Password: user.Password,
+	}.Build()
+}
+
+func ProtoTokenInString(token *pb.Token) string {
+	return token.GetToken()
+}
+
+func ProtoSecretInSecret(pbSecret *pb.Secret) *model.Secret {
 	secret := model.Secret{
 		Name:        pbSecret.GetName(),
 		Description: pbSecret.GetDescription(),
@@ -34,8 +45,27 @@ func SecretToProto(m model.Secret) *pb.Secret {
 	return pb.Secret_builder{
 		Name:          m.Name,
 		Description:   m.Description,
+		SecretType:    StringToProtoSecretType(m.SecretType),
 		EncryptedData: m.Data,
 	}.Build()
+}
+
+func SliceProtoSecretToSliceSecret(metrics []*pb.Secret) []*model.Secret {
+	result := make([]*model.Secret, 0, len(metrics))
+	for _, m := range metrics {
+		result = append(result, ProtoSecretToSecret(*m))
+	}
+	return result
+}
+
+func ProtoSecretToSecret(s pb.Secret) *model.Secret {
+	return &model.Secret{
+		Name:        s.GetName(),
+		Description: s.GetDescription(),
+		SecretType:  ProtoSecretTypeStringTo(s.GetSecretType()),
+		Data:        s.GetEncryptedData(),
+	}
+
 }
 
 func StringToProtoSecretType(secretTypeStr string) pb.SecretType {

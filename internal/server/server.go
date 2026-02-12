@@ -2,45 +2,46 @@ package server
 
 import (
 	"context"
+	cfg "gophkeeper/internal/config/server"
 	"gophkeeper/internal/infra/postgres"
-	"gophkeeper/internal/log"
 	"gophkeeper/internal/server/grpc"
 	"gophkeeper/internal/server/http"
-	"gophkeeper/internal/service"
 	"gophkeeper/internal/service/jwtmanager"
+	"gophkeeper/internal/service/server"
 )
 
 type Server struct {
-	httpServer *http.Server
 	grpcServer *grpc.Server
+	httpServer *http.Server
 }
 
-func New(cfg Config) (*Server, error) {
-	postgresStorage, err := postgres.New(cfg.DatabaseDSN)
+func New(cfg cfg.Config) (*Server, error) {
+	storage, err := postgres.New(cfg.DatabaseDSN)
 	if err != nil {
-		return &Server{}, err
+		return nil, err
 	}
 	JWTManager := jwtmanager.New(cfg.Key)
+	service := server.New(&storage, JWTManager)
+	grpcServer := grpc.New(cfg.GrpcPort, cfg.Logger, service)
+	httpServer := http.New(cfg.HttpPort, cfg.Logger, service)
 
-	service := service.New(&postgresStorage, JWTManager)
-	logger := log.New(cfg.LogLevel)
-	return &Server{
-		httpServer: http.New(cfg.HttpPort, logger, service),
-		grpcServer: grpc.New(cfg.GrpcPort, logger, service),
-	}, nil
+	return &Server{grpcServer, httpServer}, nil
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	var chErr = make(chan error, 1)
+	var (
+		chErr = make(chan error, 1)
+		err   error
+	)
 
 	go func() {
-		if err := s.httpServer.Start(ctx); err != nil {
+		if err := s.grpcServer.Start(ctx); err != nil {
 			chErr <- err
 		}
 	}()
 
 	go func() {
-		if err := s.grpcServer.Start(ctx); err != nil {
+		if err := s.httpServer.Start(ctx); err != nil {
 			chErr <- err
 		}
 	}()
@@ -49,18 +50,18 @@ func (s *Server) Start(ctx context.Context) error {
 	case err := <-chErr:
 		return err
 	case <-ctx.Done():
-		if err := s.Stop(ctx); err != nil {
-			return err
-		}
+		s.Stop(ctx)
 	}
-	return nil
+	err = <-chErr
+
+	return err
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	if err := s.httpServer.Stop(ctx); err != nil {
+	if err := s.grpcServer.Stop(ctx); err != nil {
 		return err
 	}
-	if err := s.grpcServer.Stop(ctx); err != nil {
+	if err := s.httpServer.Stop(ctx); err != nil {
 		return err
 	}
 	return nil

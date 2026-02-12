@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"gophkeeper/internal/dto/model"
 )
@@ -30,6 +31,9 @@ func (p *Postgres) UserExists(ctx context.Context, login string) (bool, error) {
 	var exists bool
 	err := p.db.QueryRowContext(ctx, query, login).Scan(&exists)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
 		return false, fmt.Errorf("error check user %s exists: %w", login, err)
 	}
 

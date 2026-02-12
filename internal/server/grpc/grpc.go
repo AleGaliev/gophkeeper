@@ -2,7 +2,10 @@ package grpc
 
 import (
 	"context"
+
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
 	"gophkeeper/internal/delivery/grpc/handlers"
 	"gophkeeper/internal/dto/log"
 	"gophkeeper/internal/dto/service"
@@ -31,6 +34,8 @@ func New(grpcPort string, logServer log.Logger, service service.Service) *Server
 			middleware.LoggingInterceptor(logServer),
 		),
 	)
+
+	reflection.Register(serverGrpc)
 
 	pb.RegisterGophKeeperServer(serverGrpc, handlers.New(service, logServer))
 

@@ -16,7 +16,6 @@ func (p *Postgres) SecretExists(ctx context.Context, user, secretName, typeSecre
             WHERE name = $1 and username = $2 and type = $3
         )
     `
-
 	var exists bool
 	err := p.db.QueryRowContext(ctx, query, secretName, user, typeSecret).Scan(&exists)
 	if err != nil {
@@ -46,8 +45,28 @@ func (r *Postgres) СreateSecret(ctx context.Context, user string, secret *model
 	return nil
 }
 
+func (r *Postgres) UpdateSecret(ctx context.Context, user string, secret *model.Secret) error {
+	query := `UPDATE secret 
+              SET name = $1, description = $2, type = $3, data = $4 
+              WHERE username = $5 AND name = $1`
+
+	_, err := r.db.ExecContext(ctx, query,
+		secret.Name,
+		secret.Description,
+		secret.SecretType,
+		secret.Data,
+		user,
+	)
+
+	if err != nil {
+		return fmt.Errorf("error updating secret: %w", err)
+	}
+
+	return nil
+}
+
 func (r *Postgres) GetSecret(ctx context.Context, user, secretName, secretType string) (model.Secret, error) {
-	var name, description, text string
+	var name, description, sType string
 	var data []byte
 
 	query := `
@@ -58,7 +77,7 @@ func (r *Postgres) GetSecret(ctx context.Context, user, secretName, secretType s
 	err := r.db.QueryRowContext(ctx, query, user, secretType, secretName).Scan(
 		&name,
 		&description,
-		&text,
+		&sType,
 		&data,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -70,7 +89,7 @@ func (r *Postgres) GetSecret(ctx context.Context, user, secretName, secretType s
 	return model.Secret{
 		Name:        name,
 		Description: description,
-		SecretType:  secretName,
+		SecretType:  sType,
 		Data:        data,
 	}, nil
 }
@@ -135,13 +154,12 @@ func (r *Postgres) GetSecretListInType(ctx context.Context, user string, typeSec
 	return secrets, nil
 }
 
-func (r *Postgres) DeleteSecret(ctx context.Context, user, secretType, secretName string) error {
+func (r *Postgres) DeleteSecret(ctx context.Context, user, secretName, secretType string) error {
 
 	query := `
         DELETE FROM secret 
 		WHERE name = $1 AND username = $2 AND type = $3
     `
-
 	_, err := r.db.ExecContext(ctx, query, secretName, user, secretType)
 	if err != nil {
 		return err
