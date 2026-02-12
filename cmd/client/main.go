@@ -56,7 +56,7 @@ func main() {
 			&cli.StringFlag{
 				Name:        "key-path",
 				Usage:       "rsa private key",
-				Value:       "~/.gophkeeper/id_rsa",
+				Value:       "~/.gophkeeper/id_aes",
 				Aliases:     []string{"i"},
 				Destination: &cfg.KeyPath,
 				Sources:     cli.EnvVars("GOPHKEEPER_PRIVATE_KEY"),

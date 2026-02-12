@@ -7,7 +7,7 @@ import (
 	"gophkeeper/internal/config/agent"
 	"gophkeeper/internal/dto/model"
 	"gophkeeper/internal/infra/sender/grpc"
-	"gophkeeper/internal/service/crypto/rsa"
+	"gophkeeper/internal/service/crypto/aes"
 	"strings"
 	"time"
 )
@@ -67,25 +67,45 @@ func New(cfg agent.Config) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	crip, err := rsa.LoadPrivateKeyFromFile(cfg.KeyPath)
+
+	crip, err := aes.LoadKeyFromFile(cfg.KeyPath)
 	if err != nil {
-		fmt.Printf("Privat key not load, create new key in path %s (y/n): ", cfg.KeyPath)
+		fmt.Printf("Key not load, create new key in path %s (y/n): ", cfg.KeyPath)
 		var answer string
 		fmt.Scanln(&answer)
 		if strings.ToLower(answer) == "y" || strings.ToLower(answer) == "yes" {
-			rsaKey, err := rsa.GenerateRSAKeys()
+			easKey, err := aes.GenerateAESKey()
 			if err != nil {
 				return nil, err
 			}
-			if err = rsaKey.SavePrivateKeyToFile(cfg.KeyPath); err != nil {
+			if err = easKey.SaveKeyToFile(cfg.KeyPath); err != nil {
 				return nil, err
 			}
-			fmt.Printf("RSA key saved to %s", cfg.KeyPath)
+			fmt.Printf("Eas key saved to %s", cfg.KeyPath)
 
 		} else {
 			return nil, err
 		}
 	}
+	//crip, err := rsa.LoadPrivateKeyFromFile(cfg.KeyPath)
+	//if err != nil {
+	//	fmt.Printf("Privat key not load, create new key in path %s (y/n): ", cfg.KeyPath)
+	//	var answer string
+	//	fmt.Scanln(&answer)
+	//	if strings.ToLower(answer) == "y" || strings.ToLower(answer) == "yes" {
+	//		rsaKey, err := rsa.GenerateRSAKeys()
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		if err = rsaKey.SavePrivateKeyToFile(cfg.KeyPath); err != nil {
+	//			return nil, err
+	//		}
+	//		fmt.Printf("RSA key saved to %s", cfg.KeyPath)
+	//
+	//	} else {
+	//		return nil, err
+	//	}
+	//}
 
 	return &Agent{
 		sender: sendler,
@@ -224,7 +244,10 @@ func (a *Agent) Encrypt(secret Secret) ([]byte, error) {
 			return nil, err
 		}
 	case "data":
-		return secret.BinaryData.Data, nil
+		data, err = json.Marshal(secret.BinaryData)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("unknown secret type %s of type %s", secret.SecretType, secret.SecretType)
 	}
@@ -237,11 +260,10 @@ func (a *Agent) Decrypt(sec model.Secret) (Secret, error) {
 		decryptedData []byte
 		err           error
 	)
-	if sec.SecretType != "binary_data" {
-		decryptedData, err = a.crypto.Decrypt(sec.Data)
-		if err != nil {
-			return Secret{}, err
-		}
+
+	decryptedData, err = a.crypto.Decrypt(sec.Data)
+	if err != nil {
+		return Secret{}, err
 	}
 
 	secret := Secret{
@@ -265,7 +287,9 @@ func (a *Agent) Decrypt(sec model.Secret) (Secret, error) {
 			return secret, err
 		}
 	case "binary_data":
-		secret.BinaryData.Data = sec.Data
+		if err := json.Unmarshal(decryptedData, &secret.BinaryData); err != nil {
+			return secret, err
+		}
 	default:
 		return Secret{}, fmt.Errorf("unknown secret type %s", secret.SecretType)
 	}
