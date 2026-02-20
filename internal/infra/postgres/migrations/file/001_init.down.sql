@@ -1,0 +1,8 @@
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_users_updated_at ON secret;
+-- Удаление функции
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
+-- Удаление таблиц в обратном порядке (сначала дочерние, потом родительские)
+DROP TABLE IF EXISTS secret;
+DROP TABLE IF EXISTS users;
